@@ -1,0 +1,20 @@
+2025-09-01 07:32:23.814120-03:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLDataException: Valor demasiado largo para la columna "CODIGO CHARACTER VARYING(10)": "'EMP-EXISTING' (12)"
+Value too long for column "CODIGO CHARACTER VARYING(10)": "'EMP-EXISTING' (12)"; SQL statement:
+insert into empresas (codigo,cuit,fecha_adhesion,numero_cuenta,razon_social,saldo,id) values (?,?,?,?,?,?,?) [22001-224]
+2025-09-01 07:32:23.868777-03:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLDataException: Valor demasiado largo para la columna "CODIGO CHARACTER VARYING(10)": "'EMP-EXISTING' (12)"
+Value too long for column "CODIGO CHARACTER VARYING(10)": "'EMP-EXISTING' (12)"; SQL statement:
+insert into empresas (codigo,cuit,fecha_adhesion,numero_cuenta,razon_social,saldo,id) values (?,?,?,?,?,?,?) [22001-224]
+2025-09-01 07:32:23.888298-03:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLDataException: Valor demasiado largo para la columna "CODIGO CHARACTER VARYING(10)": "'EMP-EXISTING' (12)"
+Value too long for column "CODIGO CHARACTER VARYING(10)": "'EMP-EXISTING' (12)"; SQL statement:
+insert into empresas (codigo,cuit,fecha_adhesion,numero_cuenta,razon_social,saldo,id) values (?,?,?,?,?,?,?) [22001-224]
+2025-09-01 07:32:23.910041-03:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLDataException: Valor demasiado largo para la columna "CODIGO CHARACTER VARYING(10)": "'EMP-EXISTING' (12)"
+Value too long for column "CODIGO CHARACTER VARYING(10)": "'EMP-EXISTING' (12)"; SQL statement:
+insert into empresas (codigo,cuit,fecha_adhesion,numero_cuenta,razon_social,saldo,id) values (?,?,?,?,?,?,?) [22001-224]
+2025-09-01 07:32:23.928109-03:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLDataException: Valor demasiado largo para la columna "CODIGO CHARACTER VARYING(10)": "'EMP-EXISTING' (12)"
+Value too long for column "CODIGO CHARACTER VARYING(10)": "'EMP-EXISTING' (12)"; SQL statement:
+insert into empresas (codigo,cuit,fecha_adhesion,numero_cuenta,razon_social,saldo,id) values (?,?,?,?,?,?,?) [22001-224]
