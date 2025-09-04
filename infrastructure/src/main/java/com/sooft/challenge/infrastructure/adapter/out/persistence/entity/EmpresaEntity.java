@@ -1,5 +1,7 @@
 package com.sooft.challenge.infrastructure.adapter.out.persistence.entity;
 
+import com.sooft.challenge.domain.model.Cuit;
+import com.sooft.challenge.domain.model.NumeroCuenta;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
@@ -30,7 +32,7 @@ public class EmpresaEntity {
     private String codigo;
 
     @Column(name = "cuit", nullable = false, unique = true)
-    private String cuit;
+    private Cuit cuit;
 
     @Column(name = "razon_social", nullable = false)
     private String razonSocial;
@@ -42,7 +44,7 @@ public class EmpresaEntity {
     private BigDecimal saldo;
 
     @Column(unique = true, nullable = false)
-    private String numeroCuenta;
+    private NumeroCuenta numeroCuenta;
 
     @OneToMany(mappedBy = "empresa", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<TransferenciaEntity> transferencias;

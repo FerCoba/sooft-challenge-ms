@@ -15,7 +15,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-
 @DisplayName("Pruebas Unitarias para el Modelo de Dominio Empresa")
 class EmpresaTest {
 
@@ -28,10 +27,10 @@ class EmpresaTest {
                 .id("1")
                 .codigo("EMP-001")
                 .razonSocial("Empresa de Prueba S.A.")
-                .cuit("30-12345678-9")
+                .cuit(Cuit.of("30-12345678-9"))
                 .fechaAdhesion(LocalDate.now())
                 .saldo(new BigDecimal("1000.00"))
-                .numeroCuenta(NUMERO_CUENTA_PRUEBA)
+                .numeroCuenta(NumeroCuenta.of(NUMERO_CUENTA_PRUEBA))
                 .build();
     }
 
@@ -46,7 +45,7 @@ class EmpresaTest {
     @DisplayName("Debitar un monto mayor al saldo debe lanzar FondosInsuficientesException")
     void debitar_conFondosInsuficientes_debeLanzarFondosInsuficientesException() {
         BigDecimal montoADebitar = new BigDecimal("1500.00");
-        String mensajeEsperado = "Fondos insuficientes en la cuenta ".concat(empresa.getNumeroCuenta());
+        String mensajeEsperado = "Fondos insuficientes en la cuenta ".concat(empresa.getNumeroCuenta().getValor());
 
         FondosInsuficientesException exception = assertThrows(FondosInsuficientesException.class, () -> {
             empresa.debitar(montoADebitar);
@@ -98,7 +97,7 @@ class EmpresaTest {
         Empresa empresaSinDatos = new Empresa();
         assertNotNull(empresaSinDatos);
 
-        Empresa empresaConDatos = new Empresa("1","ID-002","30-98765432-1","Llena S.A.", LocalDate.now(), BigDecimal.TEN, "987654321");
+        Empresa empresaConDatos = new Empresa("1","ID-002",Cuit.of("30-98765432-1"),"Llena S.A.", LocalDate.now(), BigDecimal.TEN, NumeroCuenta.of("987654321"));
 
         assertEquals("1", empresaConDatos.getId());
         assertEquals("Llena S.A.", empresaConDatos.getRazonSocial());
@@ -111,20 +110,20 @@ class EmpresaTest {
                 .id("1")
                 .codigo("EMP-001")
                 .razonSocial("Empresa de Prueba S.A.")
-                .cuit("30-12345678-9")
+                .cuit(Cuit.of("30-12345678-9"))
                 .fechaAdhesion(empresa.getFechaAdhesion())
                 .saldo(new BigDecimal("1000.00"))
-                .numeroCuenta(NUMERO_CUENTA_PRUEBA)
+                .numeroCuenta(NumeroCuenta.of(NUMERO_CUENTA_PRUEBA))
                 .build();
 
         Empresa empresaDiferente = Empresa.builder()
                 .id("2")
                 .codigo("EMP-002")
                 .razonSocial("Otra Empresa S.A.")
-                .cuit("30-00000000-0")
+                .cuit(Cuit.of("30-00000000-0"))
                 .fechaAdhesion(LocalDate.now())
                 .saldo(new BigDecimal("2000.00"))
-                .numeroCuenta("999999999")
+                .numeroCuenta(NumeroCuenta.of("999999999"))
                 .build();
 
         assertEquals(empresa, empresa);
@@ -142,6 +141,6 @@ class EmpresaTest {
         assertNotNull(toStringResult);
         assertTrue(toStringResult.contains("Empresa"));
         assertTrue(toStringResult.contains(empresa.getRazonSocial()));
-        assertTrue(toStringResult.contains(empresa.getCuit()));
+        assertTrue(toStringResult.contains(empresa.getCuit().getValor()));
     }
 }

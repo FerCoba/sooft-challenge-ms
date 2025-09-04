@@ -1,6 +1,8 @@
 package com.sooft.challenge.infrastructure.adapter.in.web.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sooft.challenge.domain.model.Cuit;
+import com.sooft.challenge.domain.model.NumeroCuenta;
 import com.sooft.challenge.infrastructure.adapter.in.web.dto.RealizarTransferenciaRequest;
 import com.sooft.challenge.infrastructure.adapter.out.persistence.entity.EmpresaEntity;
 import com.sooft.challenge.infrastructure.adapter.out.persistence.repository.EmpresaJpaRepository;
@@ -52,8 +54,8 @@ class TransferenciaIntegrationTest {
         empresaOrigen.setId(String.valueOf(UUID.randomUUID()));
         empresaOrigen.setCodigo("EMP-A");
         empresaOrigen.setRazonSocial("Empresa Origen");
-        empresaOrigen.setCuit("30111111111");
-        empresaOrigen.setNumeroCuenta(CUENTA_ORIGEN);
+        empresaOrigen.setCuit(Cuit.of("30111111111"));
+        empresaOrigen.setNumeroCuenta(NumeroCuenta.of(CUENTA_ORIGEN));
         empresaOrigen.setSaldo(new BigDecimal("1000.00"));
         empresaOrigen.setFechaAdhesion(LocalDate.now());
 
@@ -61,8 +63,8 @@ class TransferenciaIntegrationTest {
         empresaDestino.setId(String.valueOf(UUID.randomUUID()));
         empresaDestino.setCodigo("EMP-B");
         empresaDestino.setRazonSocial("Empresa Destino");
-        empresaDestino.setCuit("30222222222");
-        empresaDestino.setNumeroCuenta(CUENTA_DESTINO);
+        empresaDestino.setCuit(Cuit.of("30222222222"));
+        empresaDestino.setNumeroCuenta(NumeroCuenta.of(CUENTA_DESTINO));
         empresaDestino.setSaldo(new BigDecimal("500.00"));
         empresaDestino.setFechaAdhesion(LocalDate.now());
 
@@ -86,8 +88,8 @@ class TransferenciaIntegrationTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated());
 
-        EmpresaEntity origenActualizada = empresaRepository.findByNumeroCuenta(CUENTA_ORIGEN).get();
-        EmpresaEntity destinoActualizada = empresaRepository.findByNumeroCuenta(CUENTA_DESTINO).get();
+        EmpresaEntity origenActualizada = empresaRepository.findByNumeroCuenta(NumeroCuenta.of(CUENTA_ORIGEN)).get();
+        EmpresaEntity destinoActualizada = empresaRepository.findByNumeroCuenta(NumeroCuenta.of(CUENTA_DESTINO)).get();
 
         assertEquals(0, new BigDecimal("749.50").compareTo(origenActualizada.getSaldo()));
         assertEquals(0, new BigDecimal("750.50").compareTo(destinoActualizada.getSaldo()));
@@ -111,8 +113,8 @@ class TransferenciaIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", is("Fondos insuficientes en la cuenta " + CUENTA_ORIGEN)));
 
-        EmpresaEntity origenSinCambios = empresaRepository.findByNumeroCuenta(CUENTA_ORIGEN).get();
-        EmpresaEntity destinoSinCambios = empresaRepository.findByNumeroCuenta(CUENTA_DESTINO).get();
+        EmpresaEntity origenSinCambios = empresaRepository.findByNumeroCuenta(NumeroCuenta.of(CUENTA_ORIGEN)).get();
+        EmpresaEntity destinoSinCambios = empresaRepository.findByNumeroCuenta(NumeroCuenta.of(CUENTA_DESTINO)).get();
 
         assertEquals(0, new BigDecimal("1000.00").compareTo(origenSinCambios.getSaldo()));
         assertEquals(0, new BigDecimal("500.00").compareTo(destinoSinCambios.getSaldo()));

@@ -1,5 +1,10 @@
 package com.sooft.challenge.infrastructure.adapter.in.web.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.function.Function;
+
+import com.sooft.challenge.domain.model.Cuit;
 import com.sooft.challenge.domain.model.Empresa;
 
 import com.sooft.challenge.domain.port.in.AdherirEmpresaUseCase;
@@ -31,6 +36,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+
 
 @RestController
 @RequestMapping("/empresas")
@@ -43,15 +50,20 @@ public class EmpresaController {
     private final EmpresasConTransferenciasRecientesUseCase empresasConTransferenciasRecientesUseCase;
     private final BuscarEmpresaPorIdUseCase buscarEmpresaPorIdUseCase;
     private final BuscarTodasLasEmpresasUseCase buscarTodasLasEmpresasUseCase;
+    private final ObjectMapper objectMapper;
 
     @PostMapping
-    @Operation(summary = "Crear una nueva empresa")
+    @Operation(summary = "Crear una nueva empresa",
+            description = "Crea una nueva empresa. Este endpoint es idempotente. " +
+                    "Para reintentos seguros, incluya una cabecera 'Idempotency-Key' con un valor único (ej. un UUID).")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Empresa creada exitosamente."),
+            @ApiResponse(responseCode = "201", description = "Empresa creada exitosamente. Si la Idempotency-Key ya fue usada con esta misma petición, " +
+                    "se devolverá la respuesta original."),
             @ApiResponse(responseCode = "400", description = """
                 Solicitud inválida. Posibles errores:
                 - La fecha de adhesión no puede ser posterior a la fecha actual.
                 - Si falta alguno de los parametros del body
+                - Falta la cabecera 'Idempotency-Key'
                 """,
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
             ),
@@ -67,16 +79,28 @@ public class EmpresaController {
                 """,
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))
             )
-        })
-    public ResponseEntity<EmpresaResponseDTO> crearEmpresa(@Valid @RequestBody CrearEmpresaRequest request) {
+    })
+    public ResponseEntity<EmpresaResponseDTO> crearEmpresa(@Valid @RequestBody CrearEmpresaRequest request,
+            @RequestHeader("Idempotency-Key") String idempotencyKey
+    ) {
         var nuevaEmpresa = Empresa.builder()
-                .cuit(request.getCuit())
+                .cuit(Cuit.of(request.getCuit()))
                 .razonSocial(request.getRazonSocial())
                 .fechaAdhesion(request.getFechaAdhesion())
                 .saldo(request.getSaldo())
                 .build();
 
-        var empresaCreada = adherirEmpresaUseCase.adherirEmpresa(nuevaEmpresa);
+        Function<Empresa, String> responseSerializer = domainEmpresa -> {
+            try {
+                EmpresaResponseDTO dto = this.convertirDTO(domainEmpresa);
+                return objectMapper.writeValueAsString(dto);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("Error interno al serializar la respuesta para idempotencia", e);
+            }
+        };
+
+        var empresaCreada = adherirEmpresaUseCase.adherirEmpresa(nuevaEmpresa, idempotencyKey, responseSerializer);
+
         return ResponseEntity.status(HttpStatus.CREATED).body(convertirDTO(empresaCreada));
     }
 
@@ -158,10 +182,10 @@ public class EmpresaController {
         return new EmpresaResponseDTO(
                 empresa.getCodigo(),
                 empresa.getRazonSocial(),
-                empresa.getCuit(),
+                empresa.getCuit().getValor(),
                 empresa.getFechaAdhesion(),
                 empresa.getSaldo(),
-                empresa.getNumeroCuenta()
+                empresa.getNumeroCuenta().getValor()
         );
     }
 }

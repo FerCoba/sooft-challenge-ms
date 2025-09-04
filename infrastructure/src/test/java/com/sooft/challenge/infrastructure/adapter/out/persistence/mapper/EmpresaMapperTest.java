@@ -1,6 +1,8 @@
 package com.sooft.challenge.infrastructure.adapter.out.persistence.mapper;
 
+import com.sooft.challenge.domain.model.Cuit;
 import com.sooft.challenge.domain.model.Empresa;
+import com.sooft.challenge.domain.model.NumeroCuenta;
 import com.sooft.challenge.infrastructure.adapter.out.persistence.entity.EmpresaEntity;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,10 +26,10 @@ class EmpresaMapperTest {
         EmpresaEntity entity = new EmpresaEntity();
         entity.setId("ENTITY-001");
         entity.setRazonSocial("Razón Social Entity");
-        entity.setCuit("30-11111111-1");
+        entity.setCuit(Cuit.of("30-11111111-1"));
         entity.setFechaAdhesion(LocalDate.of(2024, 1, 15));
         entity.setSaldo(new BigDecimal("2500.50"));
-        entity.setNumeroCuenta("ACC-ENTITY-123");
+        entity.setNumeroCuenta(NumeroCuenta.of("ACC-ENTITY-123"));
 
         Empresa domainModel = mapper.toDomain(entity);
 
@@ -46,10 +48,10 @@ class EmpresaMapperTest {
         Empresa domainModel = Empresa.builder()
                 .id("DOMAIN-002")
                 .razonSocial("Razón Social Dominio")
-                .cuit("30-22222222-2")
+                .cuit(Cuit.of("30-22222222-2"))
                 .fechaAdhesion(LocalDate.of(2023, 5, 20))
                 .saldo(new BigDecimal("999.99"))
-                .numeroCuenta("ACC-DOMAIN-456")
+                .numeroCuenta(NumeroCuenta.of("ACC-DOMAIN-456"))
                 .build();
 
         EmpresaEntity entity = mapper.toEntity(domainModel);
