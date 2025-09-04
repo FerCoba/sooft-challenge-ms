@@ -29,7 +29,7 @@ class EmpresaPersistenceAdapterTest {
     private EmpresaPersistenceAdapter empresaPersistenceAdapter;
 
     @Test
-    void whenSaveEmpresa_thenEmpresaIsSaved() {
+    void guardarEmpresa_retornaEmpresaGuardada() {
 
         var empresa = Empresa.builder()
                 .id(UUID.randomUUID().toString())
@@ -46,11 +46,11 @@ class EmpresaPersistenceAdapterTest {
         var encontrada = entityManager.find(EmpresaEntity.class, empresaGuardada.getId());
         assertThat(encontrada).isNotNull();
         assertThat(encontrada.getCodigo()).isEqualTo("EMP-TEST");
-        assertThat(encontrada.getCuit().getValor()).isEqualTo("30999999997");
+        assertThat(encontrada.getCuit().getValor()).isEqualTo("30-99999999-7");
     }
 
     @Test
-    void whenFindByCuit_thenReturnsEmpresa() {
+    void buscarEmpresaPorCuit_retornaEmpresa() {
 
         var entity = new EmpresaEntity();
         entity.setId(UUID.randomUUID().toString());
@@ -62,7 +62,7 @@ class EmpresaPersistenceAdapterTest {
         entity.setNumeroCuenta(NumeroCuenta.of("123456789"));
         entityManager.merge(entity);
 
-        var resultado = empresaPersistenceAdapter.findByCuit(Cuit.of("30888888888"));
+        var resultado = empresaPersistenceAdapter.findByCuit(Cuit.of("30-88888888-8"));
 
         assertThat(resultado).isPresent();
         assertThat(resultado.get().getCodigo()).isEqualTo("EMP-FIND");

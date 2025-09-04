@@ -3,11 +3,11 @@ package com.sooft.challenge.infrastructure.adapter.in.web.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sooft.challenge.domain.model.Cuit;
 import com.sooft.challenge.domain.model.NumeroCuenta;
-// 1. IMPORTAMOS LA CONFIGURACIÓN DEL CLOCK PARA TEST
 import com.sooft.challenge.infrastructure.adapter.in.web.dto.CrearEmpresaRequest;
 import com.sooft.challenge.infrastructure.config.TestClockConfiguration;
 import com.sooft.challenge.infrastructure.adapter.out.persistence.entity.EmpresaEntity;
 import com.sooft.challenge.infrastructure.adapter.out.persistence.repository.EmpresaJpaRepository;
+import com.sooft.challenge.infrastructure.adapter.out.persistence.repository.IdempotencyKeyJpaRepository;
 import com.sooft.challenge.infrastructure.adapter.out.persistence.repository.TransferenciaJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -31,6 +32,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -52,6 +54,9 @@ class EmpresaControllerIntegrationTest {
     private TransferenciaJpaRepository transferenciaRepository;
 
     @Autowired
+    private IdempotencyKeyJpaRepository idempotencyKeyRepository;
+
+    @Autowired
     private Clock clock;
 
     private EmpresaEntity empresaExistente;
@@ -59,7 +64,9 @@ class EmpresaControllerIntegrationTest {
     @BeforeEach
     void setUp() {
         transferenciaRepository.deleteAll();
+        idempotencyKeyRepository.deleteAll();
         empresaRepository.deleteAll();
+
 
         empresaExistente = new EmpresaEntity();
         empresaExistente.setId(String.valueOf(UUID.randomUUID()));
@@ -83,6 +90,7 @@ class EmpresaControllerIntegrationTest {
         );
 
         mockMvc.perform(post("/empresas")
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -104,6 +112,7 @@ class EmpresaControllerIntegrationTest {
         );
 
         mockMvc.perform(post("/empresas")
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
@@ -111,6 +120,57 @@ class EmpresaControllerIntegrationTest {
 
         assertEquals(1, empresaRepository.count());
     }
+
+    @Test
+    @DisplayName("POST /empresas - Debe fallar si falta la cabecera Idempotency-Key y devolver 400 Bad Request")
+    void debeFallarSiFaltaLaCabeceraIdempotencyKey() throws Exception {
+        CrearEmpresaRequest request = new CrearEmpresaRequest(
+                "30444444444",
+                "Empresa Sin Cabecera",
+                LocalDate.now(clock),
+                new BigDecimal("100.00")
+        );
+
+        mockMvc.perform(post("/empresas")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /empresas - Debe procesar la primera petición y devolver la misma respuesta en el reintento")
+    void debeDevolverLaMismaRespuestaEnReintentoIdempotente() throws Exception {
+        final String idempotencyKey = UUID.randomUUID().toString();
+        CrearEmpresaRequest request = new CrearEmpresaRequest(
+                "30555555555",
+                "Empresa Idempotente",
+                LocalDate.now(clock),
+                new BigDecimal("500.00")
+        );
+
+        MvcResult firstResult = mockMvc.perform(post("/empresas")
+                        .header("Idempotency-Key", idempotencyKey)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.cuit", is("30555555555")))
+                .andReturn();
+
+        assertEquals(2, empresaRepository.count());
+        assertEquals(1, idempotencyKeyRepository.count());
+        String firstResponse = firstResult.getResponse().getContentAsString();
+
+        mockMvc.perform(post("/empresas")
+                        .header("Idempotency-Key", idempotencyKey)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(content().json(firstResponse));
+
+        assertEquals(2, empresaRepository.count(), "No se debe crear una nueva empresa en un reintento");
+        assertEquals(1, idempotencyKeyRepository.count(), "No se debe crear una nueva clave de idempotencia");
+    }
+
 
     @Test
     @DisplayName("GET /empresas/{id} - Debe devolver los datos de una empresa existente")

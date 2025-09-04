@@ -1,9 +1,18 @@
 package com.sooft.challenge.infrastructure.adapter.in.web.handler;
 
-import com.sooft.challenge.domain.exception.*;
+import com.sooft.challenge.domain.exception.IdempotentRequestException;
+import com.sooft.challenge.domain.exception.CuitDuplicadoException;
+import com.sooft.challenge.domain.exception.MontoNegativoException;
+import com.sooft.challenge.domain.exception.TransferenciaException;
+import com.sooft.challenge.domain.exception.FondosInsuficientesException;
+import com.sooft.challenge.domain.exception.FechaAdhesionException;
+import com.sooft.challenge.domain.exception.EmpresaNotFoundException;
 import com.sooft.challenge.infrastructure.adapter.in.web.dto.ErrorResponse;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -13,6 +22,36 @@ import java.time.LocalDateTime;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ErrorResponse> handleMissingRequestHeaderException(MissingRequestHeaderException ex, HttpServletRequest request) {
+        String errorMessage = String.format("La cabecera requerida '%s' no está presente.", ex.getHeaderName());
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                errorMessage,
+                request.getRequestURI());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(IdempotentRequestException.class)
+    public ResponseEntity<String> handleIdempotentRequestException(IdempotentRequestException ex) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        return new ResponseEntity<>(ex.getResponseBody(), headers, HttpStatus.valueOf(ex.getResponseStatus()));
+    }
 
     @ExceptionHandler(CuitDuplicadoException.class)
     public ResponseEntity<ErrorResponse> handleCuitDuplicadoException(CuitDuplicadoException ex, HttpServletRequest request) {

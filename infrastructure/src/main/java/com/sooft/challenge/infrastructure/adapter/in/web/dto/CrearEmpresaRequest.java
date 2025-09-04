@@ -18,7 +18,7 @@ import java.time.LocalDate;
 public class CrearEmpresaRequest {
 
     @NotEmpty(message = "El CUIT no puede ser vacío")
-    @Size(min = 11, max = 11, message = "El CUIT debe tener 11 caracteres")
+    @Size(min = 11, max = 11, message = "El CUIT debe tener 11 caracteres sin guiones.")
     private String cuit;
 
     @NotEmpty(message = "La razón social no puede ser vacía")

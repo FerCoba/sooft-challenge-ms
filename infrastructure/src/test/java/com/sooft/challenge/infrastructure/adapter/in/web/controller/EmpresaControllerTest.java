@@ -29,10 +29,13 @@ import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Function;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -57,7 +60,7 @@ class EmpresaControllerTest {
 
     @Test
     @DisplayName("Debe crear una empresa y devolver 201 Created")
-    void whenPostValidEmpresa_thenReturns201() throws Exception {
+    void postEmpresa_retorna201() throws Exception {
         CrearEmpresaRequest request = new CrearEmpresaRequest("30123456785","Empresa Test",  LocalDate.now(), new BigDecimal("1000"));
 
         Empresa empresaCreada = Empresa.builder()
@@ -68,9 +71,11 @@ class EmpresaControllerTest {
                 .numeroCuenta(NumeroCuenta.of("123456789012345"))
                 .build();
 
-        when(adherirEmpresaUseCase.adherirEmpresa(any(Empresa.class))).thenReturn(empresaCreada);
+        when(adherirEmpresaUseCase.adherirEmpresa(any(Empresa.class), anyString(), any(Function.class)))
+                .thenReturn(empresaCreada);
 
         mockMvc.perform(post("/empresas")
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -80,10 +85,11 @@ class EmpresaControllerTest {
 
     @Test
     @DisplayName("Debe devolver 400 Bad Request si el CUIT es nulo")
-    void whenPostInvalidEmpresa_thenReturns400() throws Exception {
+    void postEmpresaConCuitNull_retorna400() throws Exception {
         CrearEmpresaRequest request = new CrearEmpresaRequest(null, "Empresa Inválida",  LocalDate.now(), BigDecimal.ZERO);
 
         mockMvc.perform(post("/empresas")
+                      .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -91,7 +97,7 @@ class EmpresaControllerTest {
 
     @Test
     @DisplayName("Debe devolver una empresa y 200 OK cuando el ID existe")
-    void whenGetByExistingId_thenReturnsEmpresa() throws Exception {
+    void getEmpresaExistente_retornaEmpresa() throws Exception {
         String codigo = "ABC123";
         Empresa empresa = Empresa.builder()
                 .codigo(codigo)
@@ -109,7 +115,7 @@ class EmpresaControllerTest {
 
     @Test
     @DisplayName("Debe devolver una respuesta paginada para adheridas-ultimo-mes")
-    void givenPagingParams_whenGetAdheridasUltimoMes_thenReturnsPagedResponse() throws Exception {
+    void getEmpresasAdheridasUltimoMesPaginada_retornaRespuestaPaginada() throws Exception {
         Empresa empresa = Empresa.builder()
                 .codigo("ABC123")
                 .razonSocial("Test Corp")
@@ -129,7 +135,7 @@ class EmpresaControllerTest {
 
     @Test
     @DisplayName("Debe devolver una respuesta paginada para transferencias-ultimo-mes")
-    void givenPagingParams_whenGetTransferencias_thenReturnsPagedResponse() throws Exception {
+    void getEmpresasConTransferenciasUltimoMes_retornaRespuestaPaginanda() throws Exception {
         Empresa empresa = Empresa.builder()
                 .codigo("DEF456")
                 .razonSocial("Transfer Corp")

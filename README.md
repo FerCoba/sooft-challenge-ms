@@ -29,10 +29,6 @@ El servicio consta de tres modulos:
             •Entidades JPA (/entity): Clases anotadas con @Empresa, @Transferencia, que se mapean a las tablas de la base de datos.
             •Repositorios Spring Data (/repository): Interfaces que extienden JpaRepository.
 
-La aplicacion corre sobre una base de datos h2 la cual es una base de datos en memoria pero el servicion esta configurado para guardar la informacion
-en un archivo que se ecuentra dentro de la carpeta data, si se elimina la carpeta se pieden los datos guardados hasta ese momento, cuando se reinicie
-el servidor va a generarse nuevamente la carpeta con el archivo pero no se van a tener los datos anteriores.
-
 Los distintos endpoint estan documentados por medio de swagger, para acceder al mismo la url es http://localhost:8080/swagger-ui/index.html#/
 
 Para el caso que se desee probar el servicio por medio de postman a continuacion dejo un curl de cada uno de los endpoint
@@ -42,16 +38,17 @@ curl -X 'GET' \
 'http://localhost:8080/empresas?page=0&size=10&sort=razonSocial%2CASC' \
 -H 'accept: */*'
 
-2 Crear una nueva empresa
+2 Crear una nueva empresa (Para obtener distintos tipos de Idempotency-Key se puede utilizar https://www.uuidtools.com/v4)
 curl -X 'POST' \
 'http://localhost:8080/empresas' \
 -H 'accept: */*' \
+-H 'Idempotency-Key: 2c79cf54-a153-45b1-9c42-be5bf6f05fc4' \
 -H 'Content-Type: application/json' \
 -d '{
-"cuit": "23-123233-1",
-"razonSocial": "Empresa prueba 4",
-"fechaAdhesion": "2025-09-01",
-"saldo": 10
+"cuit": "23123999122",
+"razonSocial": "Empresa test 3",
+"fechaAdhesion": "2025-04-04",
+"saldo": 1000
 }'
 
 3 Obtener todas las empresas adheridas en el ultimo mes
@@ -87,3 +84,36 @@ El proceso para recorrer el servicio es el siguiente:
     - Consultar las empresas creadas en el mes actual
     - Relizar una transferencia
     - Consultar las empresas con transferencias en el mes actual
+
+El servicio ofrece el actuator correspondiente (http://localhost:8080/actuator)
+    - /actuator/health: Muestra el estado de salud general de la aplicación y sus componentes (base de datos, disco, etc.).
+    - /actuator/info: Expone información general y personalizada de la aplicación .
+    - /actuator/metrics: Lista todas las métricas disponibles para monitorizar (uso de memoria, CPU, peticiones HTTP, etc.).
+    - /actuator/prometheus: Expone las métricas en un formato compatible con el sistema de monitorización Prometheus.
+    - /actuator/loggers: Permite ver y modificar los niveles de log de la aplicación en tiempo real.
+    - /actuator/env: Muestra todas las propiedades de configuración del entorno de Spring.
+    - /actuator/prometheus: Expone las métricas en un formato compatible con el sistema de monitorización Prometheus.
+    - /actuator/configprops: Lista todos los beans de configuración (@ConfigurationProperties) y sus valores.
+    - /actuator/loggers: Permite ver y modificar los niveles de log de la aplicación en tiempo real.
+    - /actuator/beans: Muestra una lista completa de todos los beans cargados en el contexto de la aplicación.
+    - /actuator/mappings: Detalla todos los endpoints (@RequestMapping) de la aplicación.
+    - /actuator/threaddump: Genera un volcado de hilos (thread dump) para diagnosticar problemas de concurrencia.
+    - /actuator/env: Muestra todas las propiedades de configuración del entorno de Spring.
+    - /actuator/heapdump: Genera un volcado de memoria (heap dump) para analizar el uso de la memoria.
+    - /actuator/configprops: Lista todos los beans de configuración (@ConfigurationProperties) y sus valores.
+    - /actuator/mappings: Detalla todos los endpoints (@RequestMapping) de la aplicación.
+    - /actuator/beans: Muestra una lista completa de todos los beans cargados en el contexto de la aplicación.
+    - /actuator/loggers: Permite ver y modificar los niveles de log de la aplicación en tiempo real.
+    - /actuator/metrics: Lista todas las métricas disponibles para monitorizar (uso de memoria, CPU, peticiones HTTP, etc.).
+    - /actuator/prometheus: Expone las métricas en un formato compatible con el sistema de monitorización Prometheus.
+    - /actuator/mappings: Detalla todos los endpoints (@RequestMapping) de la aplicación.
+    - /actuator/health: Muestra el estado de salud general de la aplicación y sus componentes (base de datos, disco, etc.).
+    - /actuator/threaddump: Genera un volcado de hilos (thread dump) para diagnosticar problemas de concurrencia.
+    - /actuator/threaddump: Genera un volcado de hilos (thread dump) para diagnosticar problemas de concurrencia.
+    - /actuator/threaddump: Genera un volcado de hilos (thread dump) para diagnosticar problemas de concurrencia.
+    - /actuator/heapdump: Genera un volcado de memoria (heap dump) para analizar el uso de la memoria.
+
+Base de datos utilizada: (http://localhost:8080/h2-console/login.jsp?jsessionid=3f46b6e8ec9e2a5e9091362a0c6a1286. Usuario: sa, Password: password)
+La aplicacion corre sobre una base de datos h2, el servicion esta configurado para guardar la informacion
+en un archivo que se ecuentra dentro de la carpeta data, si se elimina la carpeta se pieden los datos guardados hasta ese momento, 
+cuando se reinicie el servidor va a generarse nuevamente la carpeta con el archivo pero no se van a tener los datos anteriores.

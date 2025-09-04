@@ -33,7 +33,7 @@ class TransferenciaControllerTest {
 
     @Test
     @DisplayName("Debe procesar una transferencia válida y devolver 201 Created")
-    void whenPostValidTransferencia_thenReturns201() throws Exception {
+    void postConUnaTransferenciaValida_retorna201() throws Exception {
 
         RealizarTransferenciaRequest request = new RealizarTransferenciaRequest(
                 "11111-1",
@@ -64,7 +64,7 @@ class TransferenciaControllerTest {
 
     @Test
     @DisplayName("Debe rechazar una transferencia con importe negativo y devolver 400 Bad Request")
-    void whenPostTransferenciaWithNegativeAmount_thenReturns400() throws Exception {
+    void postTransferenciaConMontoNegativo_retorna400() throws Exception {
 
         RealizarTransferenciaRequest request = new RealizarTransferenciaRequest(
                 "11111-1",
@@ -81,7 +81,7 @@ class TransferenciaControllerTest {
 
     @Test
     @DisplayName("Debe rechazar una transferencia con cuenta de débito nula y devolver 400 Bad Request")
-    void whenPostTransferenciaWithNullAccount_thenReturns400() throws Exception {
+    void postTransferenciaConCuentaNull_retorna400() throws Exception {
 
         RealizarTransferenciaRequest request = new RealizarTransferenciaRequest(
                 null,

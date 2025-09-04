@@ -3,7 +3,7 @@ package com.sooft.challenge.infrastructure.adapter.out.persistence.adapter;
 import com.sooft.challenge.domain.model.IdempotencyRecord;
 import com.sooft.challenge.domain.port.out.IdempotencyKeyPort;
 import com.sooft.challenge.infrastructure.adapter.out.persistence.mapper.IdempotencyKeyMapper;
-import com.sooft.challenge.infrastructure.adapter.out.persistence.repository.IdempotencyKeyRepository;
+import com.sooft.challenge.infrastructure.adapter.out.persistence.repository.IdempotencyKeyJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -13,7 +13,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class IdempotencyKeyPersistenceAdapter implements IdempotencyKeyPort {
 
-    private final IdempotencyKeyRepository repository;
+    private final IdempotencyKeyJpaRepository repository;
     private final IdempotencyKeyMapper mapper;
 
     @Override

@@ -19,8 +19,14 @@ public class Cuit implements Serializable {
 
     public static Cuit of(String valor) {
         Assert.notNull(valor, "El CUIT no puede ser nulo");
-        var cuitNormalizado = valor.replace("-", "").trim();
-        Assert.isTrue(CUIT_PATTERN.matcher(cuitNormalizado).matches(), "El formato del CUIT es inválido. Debe contener 11 dígitos alfanumericos.");
-        return new Cuit(cuitNormalizado);
+        String cuitNormalizado = valor.replace("-", "").trim();
+
+        Assert.isTrue(CUIT_PATTERN.matcher(cuitNormalizado).matches(), "El formato del CUIT es inválido. Debe contener 11 dígitos.");
+
+        return new Cuit(valor);
+    }
+
+    public String getValorNormalizado() {
+        return this.valor.replace("-", "").trim();
     }
 }
