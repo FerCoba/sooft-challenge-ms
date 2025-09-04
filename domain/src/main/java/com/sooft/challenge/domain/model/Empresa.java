@@ -18,11 +18,11 @@ public class Empresa {
 
     private String id;
     private String codigo;
-    private String cuit;
+    private Cuit cuit;
     private String razonSocial;
     private LocalDate fechaAdhesion;
     private BigDecimal saldo;
-    private String numeroCuenta;
+    private NumeroCuenta numeroCuenta;
 
 
     public void debitar(BigDecimal monto) {
@@ -32,7 +32,7 @@ public class Empresa {
         }
 
         if (this.saldo == null || this.saldo.compareTo(monto) < 0) {
-            throw new FondosInsuficientesException(this.numeroCuenta);
+            throw new FondosInsuficientesException(this.numeroCuenta.getValor());
         }
         this.saldo = this.saldo.subtract(monto);
     }

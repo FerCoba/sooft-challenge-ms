@@ -1,5 +1,7 @@
 package com.sooft.challenge.infrastructure.adapter.out.persistence.repository;
 
+import com.sooft.challenge.domain.model.Cuit;
+import com.sooft.challenge.domain.model.NumeroCuenta;
 import com.sooft.challenge.infrastructure.adapter.out.persistence.entity.EmpresaEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -14,7 +16,7 @@ import java.util.Optional;
 @Repository
 public interface EmpresaJpaRepository extends JpaRepository<EmpresaEntity, String> {
 
-    Optional<EmpresaEntity> findByCuit(String cuit);
+    Optional<EmpresaEntity> findByCuit(Cuit cuit);
 
     Optional<EmpresaEntity> findByCodigo(String codigo);
 
@@ -24,5 +26,5 @@ public interface EmpresaJpaRepository extends JpaRepository<EmpresaEntity, Strin
     @Query("SELECT DISTINCT t.empresa FROM TransferenciaEntity t WHERE t.fecha >= :fechaDesde ORDER BY t.empresa.razonSocial ASC")
     Page<EmpresaEntity> findEmpresasConTransferenciasDesde(@Param("fechaDesde") LocalDate fechaDesde, Pageable pageable);
 
-    Optional<EmpresaEntity> findByNumeroCuenta(String numeroCuenta);
+    Optional<EmpresaEntity> findByNumeroCuenta(NumeroCuenta numeroCuenta);
 }

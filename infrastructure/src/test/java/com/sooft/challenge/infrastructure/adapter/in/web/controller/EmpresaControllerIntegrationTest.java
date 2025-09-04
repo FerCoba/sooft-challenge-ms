@@ -1,7 +1,11 @@
 package com.sooft.challenge.infrastructure.adapter.in.web.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sooft.challenge.domain.model.Cuit;
+import com.sooft.challenge.domain.model.NumeroCuenta;
+// 1. IMPORTAMOS LA CONFIGURACIÓN DEL CLOCK PARA TEST
 import com.sooft.challenge.infrastructure.adapter.in.web.dto.CrearEmpresaRequest;
+import com.sooft.challenge.infrastructure.config.TestClockConfiguration;
 import com.sooft.challenge.infrastructure.adapter.out.persistence.entity.EmpresaEntity;
 import com.sooft.challenge.infrastructure.adapter.out.persistence.repository.EmpresaJpaRepository;
 import com.sooft.challenge.infrastructure.adapter.out.persistence.repository.TransferenciaJpaRepository;
@@ -11,10 +15,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -30,6 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Import(TestClockConfiguration.class)
 class EmpresaControllerIntegrationTest {
 
     @Autowired
@@ -44,6 +51,9 @@ class EmpresaControllerIntegrationTest {
     @Autowired
     private TransferenciaJpaRepository transferenciaRepository;
 
+    @Autowired
+    private Clock clock;
+
     private EmpresaEntity empresaExistente;
 
     @BeforeEach
@@ -55,10 +65,10 @@ class EmpresaControllerIntegrationTest {
         empresaExistente.setId(String.valueOf(UUID.randomUUID()));
         empresaExistente.setCodigo("EMP-EXIST");
         empresaExistente.setRazonSocial("Empresa Ya Existente");
-        empresaExistente.setCuit("30111111111");
-        empresaExistente.setNumeroCuenta("12345-1");
+        empresaExistente.setCuit(Cuit.of("30111111111"));
+        empresaExistente.setNumeroCuenta(NumeroCuenta.of("12345-1"));
         empresaExistente.setSaldo(new BigDecimal("1000.00"));
-        empresaExistente.setFechaAdhesion(LocalDate.now().minusMonths(2));
+        empresaExistente.setFechaAdhesion(LocalDate.now(clock).minusMonths(2));
         empresaRepository.save(empresaExistente);
     }
 
@@ -68,7 +78,7 @@ class EmpresaControllerIntegrationTest {
         CrearEmpresaRequest request = new CrearEmpresaRequest(
                 "30222222222",
                 "Empresa Nueva",
-                LocalDate.now(),
+                LocalDate.now(clock),
                 new BigDecimal("500.00")
         );
 
@@ -87,9 +97,9 @@ class EmpresaControllerIntegrationTest {
     @DisplayName("POST /empresas - Debe fallar si el CUIT ya existe y devolver 409 Conflict")
     void debeFallarAlCrearEmpresaConCuitDuplicado() throws Exception {
         CrearEmpresaRequest request = new CrearEmpresaRequest(
-                empresaExistente.getCuit(),
+                empresaExistente.getCuit().getValor(),
                 "Intento de Duplicado",
-                LocalDate.now(),
+                LocalDate.now(clock),
                 new BigDecimal("100.00")
         );
 
@@ -97,7 +107,7 @@ class EmpresaControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message", is("Ya existe una empresa registrada con el CUIT: " + empresaExistente.getCuit())));
+                .andExpect(jsonPath("$.message", is("Ya existe una empresa registrada con el CUIT: " + empresaExistente.getCuit().getValor())));
 
         assertEquals(1, empresaRepository.count());
     }
@@ -107,10 +117,10 @@ class EmpresaControllerIntegrationTest {
     void debeDevolverEmpresaExistente() throws Exception {
         String codigoExistente = empresaExistente.getCodigo();
 
-       mockMvc.perform(get("/empresas/" + codigoExistente))
+        mockMvc.perform(get("/empresas/" + codigoExistente))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is(codigoExistente)))
-                .andExpect(jsonPath("$.cuit", is(empresaExistente.getCuit())));
+                .andExpect(jsonPath("$.cuit", is(empresaExistente.getCuit().getValor())));
     }
 
     @Test
@@ -129,15 +139,15 @@ class EmpresaControllerIntegrationTest {
         empresaReciente.setId(String.valueOf(UUID.randomUUID()));
         empresaReciente.setCodigo("EMP-RECENT");
         empresaReciente.setRazonSocial("Empresa Reciente");
-        empresaReciente.setCuit("30333333333");
-        empresaReciente.setNumeroCuenta("54321-9");
+        empresaReciente.setCuit(Cuit.of("30333333333"));
+        empresaReciente.setNumeroCuenta(NumeroCuenta.of("54321-9"));
         empresaReciente.setSaldo(new BigDecimal("200.00"));
-        empresaReciente.setFechaAdhesion(LocalDate.now().minusDays(15));
+        empresaReciente.setFechaAdhesion(LocalDate.now(clock).minusDays(15));
         empresaRepository.save(empresaReciente);
 
         mockMvc.perform(get("/empresas/reportes/adheridas-ultimo-mes?page=0&size=5"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content", hasSize(1)))
-                .andExpect(jsonPath("$.content[0].cuit", is(empresaReciente.getCuit())));
+                .andExpect(jsonPath("$.content[0].cuit", is(empresaReciente.getCuit().getValor())));
     }
 }

@@ -1,5 +1,6 @@
 package com.sooft.challenge.infrastructure.adapter.in.web.controller;
 
+import com.sooft.challenge.domain.model.Cuit;
 import com.sooft.challenge.domain.model.Empresa;
 
 import com.sooft.challenge.domain.port.in.AdherirEmpresaUseCase;
@@ -70,7 +71,7 @@ public class EmpresaController {
         })
     public ResponseEntity<EmpresaResponseDTO> crearEmpresa(@Valid @RequestBody CrearEmpresaRequest request) {
         var nuevaEmpresa = Empresa.builder()
-                .cuit(request.getCuit())
+                .cuit(Cuit.of(request.getCuit()))
                 .razonSocial(request.getRazonSocial())
                 .fechaAdhesion(request.getFechaAdhesion())
                 .saldo(request.getSaldo())
@@ -158,10 +159,10 @@ public class EmpresaController {
         return new EmpresaResponseDTO(
                 empresa.getCodigo(),
                 empresa.getRazonSocial(),
-                empresa.getCuit(),
+                empresa.getCuit().getValor(),
                 empresa.getFechaAdhesion(),
                 empresa.getSaldo(),
-                empresa.getNumeroCuenta()
+                empresa.getNumeroCuenta().getValor()
         );
     }
 }

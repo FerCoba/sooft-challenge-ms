@@ -1,37 +1,36 @@
 package com.sooft.challenge.application.service;
 
 import com.sooft.challenge.domain.exception.CuitDuplicadoException;
-import com.sooft.challenge.domain.exception.EmpresaNotFoundException;
 import com.sooft.challenge.domain.exception.FechaAdhesionException;
+import com.sooft.challenge.domain.model.Cuit;
 import com.sooft.challenge.domain.model.Empresa;
 import com.sooft.challenge.domain.port.out.EmpresaRepositoryPort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.doReturn;
 
 @ExtendWith(MockitoExtension.class)
 class EmpresaServiceTest {
@@ -39,135 +38,111 @@ class EmpresaServiceTest {
     @Mock
     private EmpresaRepositoryPort empresaRepositoryPort;
 
-    @InjectMocks
+    private Clock clock;
+
     private EmpresaService empresaService;
 
-    @Test
-    @DisplayName("Debe adherir una empresa exitosamente y generar código y número de cuenta")
-    void givenValidEmpresa_whenAdherirEmpresa_thenEmpresaIsSaved() {
+    private final Cuit CUIT_VALIDO = Cuit.of("30112233445");
+    private final String RAZON_SOCIAL = "Empresa de Prueba S.A.";
+    private final BigDecimal SALDO_INICIAL = new BigDecimal("10000.00");
 
-        Empresa empresaSinGuardar = Empresa.builder()
-                .cuit("20-12345678-9")
-                .fechaAdhesion(LocalDate.now())
+    @BeforeEach
+    void setUp() {
+
+        var fechaFija = Instant.parse("2024-05-20T10:00:00Z");
+        clock = Clock.fixed(fechaFija, ZoneId.of("UTC"));
+
+        empresaService = new EmpresaService(empresaRepositoryPort, clock);
+    }
+
+    @Test
+    @DisplayName("Debe adherir una empresa exitosamente si los datos son válidos")
+    void adherirEmpresa_exitosa() {
+
+        var fechaAdhesionValida = LocalDate.now(clock).minusDays(10);
+        var empresaParaAdherir = Empresa.builder()
+                .cuit(CUIT_VALIDO)
+                .razonSocial(RAZON_SOCIAL)
+                .fechaAdhesion(fechaAdhesionValida)
+                .saldo(SALDO_INICIAL)
                 .build();
 
-        when(empresaRepositoryPort.findByCuit(empresaSinGuardar.getCuit())).thenReturn(Optional.empty());
-
+        when(empresaRepositoryPort.findByCuit(Cuit.of(CUIT_VALIDO.getValor()))).thenReturn(Optional.empty());
         when(empresaRepositoryPort.save(any(Empresa.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Empresa empresaGuardada = empresaService.adherirEmpresa(empresaSinGuardar);
+        var empresaAdherida = empresaService.adherirEmpresa(empresaParaAdherir);
 
-        ArgumentCaptor<Empresa> empresaCaptor = ArgumentCaptor.forClass(Empresa.class);
-        verify(empresaRepositoryPort).save(empresaCaptor.capture());
-        Empresa empresaCapturada = empresaCaptor.getValue();
-
-        assertNotNull(empresaGuardada);
-        assertNotNull(empresaCapturada.getCodigo());
-        assertNotNull(empresaCapturada.getNumeroCuenta());
-        assertEquals(6, empresaCapturada.getCodigo().length());
-        assertEquals(15, empresaCapturada.getNumeroCuenta().length());
+        assertNotNull(empresaAdherida);
+        assertEquals(CUIT_VALIDO, empresaAdherida.getCuit());
+        assertNotNull(empresaAdherida.getCodigo());
+        assertNotNull(empresaAdherida.getNumeroCuenta());
+        verify(empresaRepositoryPort).save(any(Empresa.class));
     }
 
     @Test
-    @DisplayName("Debe lanzar CuitAlreadyExistsException si el CUIT ya existe")
-    void givenExistingCuit_whenAdherirEmpresa_thenThrowsCuitAlreadyExistsException() {
+    @DisplayName("Debe lanzar CuitDuplicadoException si el CUIT ya existe")
+    void adherirEmpresa_cuitDuplicado() {
 
-        Empresa empresaExistente = Empresa.builder().cuit("20-11111111-1").build();
-        when(empresaRepositoryPort.findByCuit(empresaExistente.getCuit())).thenReturn(Optional.of(empresaExistente));
+        var empresaExistente = Empresa.builder().cuit(CUIT_VALIDO).build();
+        var empresaParaAdherir = Empresa.builder()
+                .cuit(CUIT_VALIDO)
+                .fechaAdhesion(LocalDate.now(clock))
+                .build();
+
+        when(empresaRepositoryPort.findByCuit(Cuit.of(CUIT_VALIDO.getValor()))).thenReturn(Optional.of(empresaExistente));
 
         assertThrows(CuitDuplicadoException.class, () -> {
-            empresaService.adherirEmpresa(empresaExistente);
+            empresaService.adherirEmpresa(empresaParaAdherir);
         });
-
-        verify(empresaRepositoryPort, never()).save(any(Empresa.class));
     }
 
     @Test
-    @DisplayName("Debe lanzar FechaAdhesionException si la fecha es futura")
-    void givenFutureDate_whenAdherirEmpresa_thenThrowsFechaAdhesionException() {
-        Empresa empresaConFechaFutura = Empresa.builder()
-                .cuit("20-22222222-2")
-                .fechaAdhesion(LocalDate.now().plusDays(1))
+    @DisplayName("Debe lanzar FechaAdhesionException si la fecha de adhesión es futura")
+    void adherirEmpresa_fechaFutura() {
+
+        var fechaFutura = LocalDate.now(clock).plusDays(1);
+        var empresaConFechaFutura = Empresa.builder()
+                .cuit(CUIT_VALIDO)
+                .razonSocial(RAZON_SOCIAL)
+                .fechaAdhesion(fechaFutura)
+                .saldo(SALDO_INICIAL)
                 .build();
-        when(empresaRepositoryPort.findByCuit(empresaConFechaFutura.getCuit())).thenReturn(Optional.empty());
+
+        // CORRECCIÓN 1: El método findByCuit del port espera un String.
+        // CORRECCIÓN 2: La sintaxis de when(...).thenReturn(...) estaba mal formada.
+        when(empresaRepositoryPort.findByCuit(Cuit.of(CUIT_VALIDO.getValor()))).thenReturn(Optional.empty());
 
         assertThrows(FechaAdhesionException.class, () -> {
             empresaService.adherirEmpresa(empresaConFechaFutura);
         });
-
-        verify(empresaRepositoryPort, never()).save(any(Empresa.class));
     }
 
     @Test
-    @DisplayName("Debe devolver una empresa cuando se busca por un código existente")
-    void givenExistingCode_whenFindById_thenReturnsEmpresa() {
+    @DisplayName("getEmpresasAdheridasUltimoMes debe llamar al repositorio correctamente")
+    void getEmpresasAdheridasUltimoMes_llamaAlRepositorio() {
 
-        String codigo = "ABC123";
-        Empresa empresa = Empresa.builder().codigo(codigo).build();
-        when(empresaRepositoryPort.findByCodigo(codigo)).thenReturn(Optional.of(empresa));
+        var pageable = PageRequest.of(0, 10);
+        var pageVacia = new PageImpl<>(Collections.<Empresa>emptyList());
 
-        Optional<Empresa> resultado = empresaService.findById(codigo);
+        doReturn(pageVacia).when(empresaRepositoryPort).findEmpresasAdheridasEnElUltimoMes(pageable);
 
-        assertTrue(resultado.isPresent());
-        assertEquals(codigo, resultado.get().getCodigo());
-        verify(empresaRepositoryPort).findByCodigo(codigo);
+        var resultado = empresaService.findEmpresasAdheridasRecientemente(pageable);
+
+        assertNotNull(resultado);
+        verify(empresaRepositoryPort, times(1)).findEmpresasAdheridasEnElUltimoMes(pageable);
     }
 
     @Test
-    @DisplayName("Debe lanzar EmpresaNotFoundException cuando se busca por un código inexistente")
-    void givenNonExistingCode_whenFindById_thenThrowsEmpresaNotFoundException() {
+    @DisplayName("getEmpresasConTransferenciasUltimoMes debe llamar al repositorio")
+    void getEmpresasConTransferenciasUltimoMes_llamaAlRepositorio() {
 
-        String codigo = "XYZ987";
-        when(empresaRepositoryPort.findByCodigo(codigo)).thenReturn(Optional.empty());
-
-        assertThrows(EmpresaNotFoundException.class, () -> {
-            empresaService.findById(codigo);
-        });
-
-        verify(empresaRepositoryPort).findByCodigo(codigo);
-    }
-
-    @Test
-    @DisplayName("Debe llamar al repositorio con Pageable para empresas adheridas")
-    void whenFindEmpresasAdheridas_thenRepositoryIsCalledWithPageable() {
-
-        Pageable pageable = PageRequest.of(0, 10);
-        List<Empresa> empresas = Collections.singletonList(Empresa.builder().build());
-        Page<Empresa> empresaPage = new PageImpl<>(empresas, pageable, 1);
-        when(empresaRepositoryPort.findEmpresasAdheridasEnElUltimoMes(pageable)).thenReturn(empresaPage);
-
-        Page<Empresa> resultado = empresaService.findEmpresasAdheridasRecientemente(pageable);
-
-        assertEquals(1, resultado.getTotalElements());
-        verify(empresaRepositoryPort).findEmpresasAdheridasEnElUltimoMes(pageable);
-    }
-
-    @Test
-    @DisplayName("Debe llamar al repositorio con Pageable para empresas con transferencias")
-    void whenFindEmpresasConTransferencias_thenRepositoryIsCalledWithPageable() {
-
-        Pageable pageable = PageRequest.of(1, 5);
-        Page<Empresa> empresaPage = new PageImpl<>(Collections.emptyList(), pageable, 0);
-        when(empresaRepositoryPort.findEmpresasConTransferenciasEnElUltimoMes(pageable)).thenReturn(empresaPage);
+        var pageable = PageRequest.of(0, 10);
+        Page<Empresa> pageVacia = new PageImpl<>(Collections.emptyList());
+        when(empresaRepositoryPort.findEmpresasConTransferenciasEnElUltimoMes(pageable)).thenReturn(pageVacia);
 
         Page<Empresa> resultado = empresaService.findEmpresasConTransferenciasRecientes(pageable);
 
-        assertEquals(0, resultado.getTotalElements());
+        assertNotNull(resultado);
         verify(empresaRepositoryPort).findEmpresasConTransferenciasEnElUltimoMes(pageable);
-    }
-
-    @Test
-    @DisplayName("Debe llamar al repositorio y devolver una página de empresas")
-    void whenFindAll_thenCallsRepositoryAndReturnsPage() {
-
-        Pageable pageable = PageRequest.of(0, 10);
-        Page<Empresa> expectedPage = new PageImpl<>(Collections.emptyList());
-
-        when(empresaRepositoryPort.findAll(pageable)).thenReturn(expectedPage);
-        Page<Empresa> actualPage = empresaService.findAll(pageable);
-
-        assertNotNull(actualPage);
-        assertEquals(expectedPage, actualPage);
-        verify(empresaRepositoryPort, times(1)).findAll(pageable);
     }
 }

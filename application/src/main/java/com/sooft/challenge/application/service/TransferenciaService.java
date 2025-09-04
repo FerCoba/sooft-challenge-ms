@@ -2,6 +2,7 @@ package com.sooft.challenge.application.service;
 
 import com.sooft.challenge.domain.exception.EmpresaNotFoundException;
 import com.sooft.challenge.domain.exception.TransferenciaException;
+import com.sooft.challenge.domain.model.NumeroCuenta;
 import com.sooft.challenge.domain.model.Transferencia;
 import com.sooft.challenge.domain.port.in.RealizarTransferenciaUseCase;
 import com.sooft.challenge.domain.port.out.EmpresaRepositoryPort;
@@ -25,7 +26,7 @@ public class TransferenciaService implements RealizarTransferenciaUseCase {
     @Transactional
     public Transferencia realizarTransferencia(String cuentaDebito, String idEmpresaCredito, String cuentaCredito, BigDecimal importe) {
 
-         var empresaDebito = empresaRepositoryPort.findByNumeroCuenta(cuentaDebito)
+         var empresaDebito = empresaRepositoryPort.findByNumeroCuenta(NumeroCuenta.of(cuentaDebito))
                 .orElseThrow(() -> new EmpresaNotFoundException("La cuenta de débito " + cuentaDebito + " no existe."));
 
          var empresaCredito = empresaRepositoryPort.findByCodigo(idEmpresaCredito)
@@ -35,7 +36,7 @@ public class TransferenciaService implements RealizarTransferenciaUseCase {
             throw new TransferenciaException("La cuenta de débito y crédito no pueden pertenecer a la misma empresa.");
         }
 
-        if (!empresaCredito.getNumeroCuenta().equals(cuentaCredito)) {
+        if (!empresaCredito.getNumeroCuenta().getValor().equals(cuentaCredito)) {
             throw new TransferenciaException("La cuenta de crédito " + cuentaCredito + " no pertenece a la empresa '" + empresaCredito.getRazonSocial() + "'.");
         }
 

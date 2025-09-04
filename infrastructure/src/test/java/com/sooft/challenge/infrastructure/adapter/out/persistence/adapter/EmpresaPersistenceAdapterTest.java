@@ -1,11 +1,11 @@
 package com.sooft.challenge.infrastructure.adapter.out.persistence.adapter;
 
+import com.sooft.challenge.domain.model.Cuit;
 import com.sooft.challenge.domain.model.Empresa;
+import com.sooft.challenge.domain.model.NumeroCuenta;
 import com.sooft.challenge.infrastructure.adapter.out.persistence.entity.EmpresaEntity;
 import com.sooft.challenge.infrastructure.adapter.out.persistence.mapper.EmpresaMapperImpl;
-import com.sooft.challenge.infrastructure.adapter.out.persistence.repository.EmpresaJpaRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
+import com.sooft.challenge.infrastructure.config.TestClockConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -14,65 +14,57 @@ import org.springframework.context.annotation.Import;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
-@Import({EmpresaPersistenceAdapter.class, EmpresaMapperImpl.class})
+@Import({EmpresaPersistenceAdapter.class, EmpresaMapperImpl.class, TestClockConfiguration.class})
 class EmpresaPersistenceAdapterTest {
-
-    @Autowired
-    private EmpresaPersistenceAdapter empresaPersistenceAdapter;
 
     @Autowired
     private TestEntityManager entityManager;
 
     @Autowired
-    private EmpresaJpaRepository empresaJpaRepository;
-
-    @BeforeEach
-    void setUp() {
-        empresaJpaRepository.deleteAll();
-    }
+    private EmpresaPersistenceAdapter empresaPersistenceAdapter;
 
     @Test
-    @DisplayName("Debe guardar una empresa correctamente")
     void whenSaveEmpresa_thenEmpresaIsSaved() {
-        Empresa empresa = Empresa.builder()
-                .codigo(UUID.randomUUID().toString().substring(0, 10))
-                .numeroCuenta(UUID.randomUUID().toString())
-                .cuit("30-12345678-9")
-                .razonSocial("Empresa Test")
+
+        var empresa = Empresa.builder()
+                .id(UUID.randomUUID().toString())
+                .codigo("EMP-TEST")
+                .razonSocial("Test Corp")
+                .cuit(Cuit.of("30-99999999-7"))
                 .fechaAdhesion(LocalDate.now())
-                .saldo(new BigDecimal("1000.00"))
+                .saldo(BigDecimal.ZERO)
+                .numeroCuenta(NumeroCuenta.of("987654321"))
                 .build();
 
-        empresaPersistenceAdapter.save(empresa);
+        var empresaGuardada = empresaPersistenceAdapter.save(empresa);
 
-        EmpresaEntity found = empresaJpaRepository.findByCuit("30-12345678-9").orElse(null);
-
-        assertNotNull(found);
-        assertEquals("Empresa Test", found.getRazonSocial());
+        var encontrada = entityManager.find(EmpresaEntity.class, empresaGuardada.getId());
+        assertThat(encontrada).isNotNull();
+        assertThat(encontrada.getCodigo()).isEqualTo("EMP-TEST");
+        assertThat(encontrada.getCuit().getValor()).isEqualTo("30999999997");
     }
 
     @Test
-    @DisplayName("Debe encontrar una empresa por su CUIT")
     void whenFindByCuit_thenReturnsEmpresa() {
-        EmpresaEntity empresaEntity = new EmpresaEntity();
-        empresaEntity.setCodigo(UUID.randomUUID().toString().substring(0, 10));
-        empresaEntity.setNumeroCuenta(UUID.randomUUID().toString());
-        empresaEntity.setCuit("30-98765432-1");
-        empresaEntity.setRazonSocial("Empresa Test");
-        empresaEntity.setFechaAdhesion(LocalDate.now());
-        empresaEntity.setSaldo(BigDecimal.ZERO);
 
-        entityManager.persistAndFlush(empresaEntity);
+        var entity = new EmpresaEntity();
+        entity.setId(UUID.randomUUID().toString());
+        entity.setCodigo("EMP-FIND");
+        entity.setRazonSocial("Find Corp");
+        entity.setCuit(Cuit.of("30-88888888-8"));
+        entity.setFechaAdhesion(LocalDate.now());
+        entity.setSaldo(BigDecimal.ZERO);
+        entity.setNumeroCuenta(NumeroCuenta.of("123456789"));
+        entityManager.merge(entity);
 
-        Optional<Empresa> foundEmpresa = empresaPersistenceAdapter.findByCuit("30-98765432-1");
+        var resultado = empresaPersistenceAdapter.findByCuit(Cuit.of("30888888888"));
 
-        assertTrue(foundEmpresa.isPresent());
-        assertEquals("Empresa Test", foundEmpresa.get().getRazonSocial());
+        assertThat(resultado).isPresent();
+        assertThat(resultado.get().getCodigo()).isEqualTo("EMP-FIND");
     }
 }

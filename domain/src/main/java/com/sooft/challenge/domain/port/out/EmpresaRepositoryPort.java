@@ -1,6 +1,8 @@
 package com.sooft.challenge.domain.port.out;
 
+import com.sooft.challenge.domain.model.Cuit;
 import com.sooft.challenge.domain.model.Empresa;
+import com.sooft.challenge.domain.model.NumeroCuenta;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -16,9 +18,9 @@ public interface EmpresaRepositoryPort {
 
     Page<Empresa> findEmpresasConTransferenciasEnElUltimoMes(Pageable pageable);
 
-    Optional<Empresa> findByCuit(String cuit);
+    Optional<Empresa> findByCuit(Cuit cuit);
 
-    Optional<Empresa> findByNumeroCuenta(String numeroCuenta);
+    Optional<Empresa> findByNumeroCuenta(NumeroCuenta numeroCuenta);
 
     Page<Empresa> findAll(Pageable pageable);
 }
